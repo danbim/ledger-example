@@ -7,8 +7,6 @@ import java.io.ObjectOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 
-import com.bimschas.ledger.ReplayDemo.initialBalance
-
 // =====================================================================================================================
 // Domain model
 // =====================================================================================================================
@@ -33,7 +31,7 @@ case class Balance(amount: Euro) {
   }
 }
 object Balance {
-  def zero: Balance = Balance(amount = Euro(0.0))
+  val zero: Balance = Balance(amount = Euro(0.0))
 }
 
 // =====================================================================================================================
@@ -46,15 +44,22 @@ object Common {
     List(
       IncomingBookingReceived(amount = Euro(50.0), description = "new customer welcome bonus"),
       OutgoingBookingReceived(amount = Euro(30.0), description = "party time!"),
-      OutgoingBookingReceived(amount = Euro(300.0), description = "rent"),
-      IncomingBookingReceived(amount = Euro(120.0), description = "bad paying weekend promotion job")
+      OutgoingBookingReceived(amount = Euro(250.0), description = "rent"),
+      IncomingBookingReceived(amount = Euro(120.0), description = "bad paying promotion job")
     )
 
-  def replay(initialBalance: Balance, eventLog: List[BookingEvent]): Balance =
+  def replay(initialBalance: Balance, eventLog: List[BookingEvent]): Balance = {
     eventLog.foldLeft(initialBalance) {
-      case (balance, bookingEvent) =>
-        balance.process(bookingEvent)
+      case (balance, event) => balance.process(event)
     }
+    /* same as ...
+    var balance = initialBalance
+    for (event <- eventLog) {
+      balance = balance.process(event)
+    }
+    balance
+    */
+  }
 }
 
 object ReplayDemo extends App {
@@ -89,7 +94,8 @@ object ReplayWithSnapshotDemo extends App {
   println(s"balance when taking snapshot: $snapshotBalance")
 
   val snapshotFilePath = Files.createTempFile("snapshot-replay-demo", "")
-  val snapshotStore = JavaSerializationSnapshotStore // really, never ever use Java serialization (other than for demo purposes)!!!
+  // really, never ever use Java serialization (other than for demo purposes)!!!
+  val snapshotStore = JavaSerializationSnapshotStore
   snapshotStore.persist(snapshotBalance, snapshotFilePath)
 
   println()
